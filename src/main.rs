@@ -1,26 +1,16 @@
-use leftover::leftover_geo_json_areas;
+use axum::serve;
+use server::create_router;
 mod leftover;
+mod server;
+mod types;
 
-fn main() {
-    let subject = r#"{
-        "type": "MultiPolygon",
-        "coordinates": [[[[180.0, 200.0 ],[260.0, 200.0 ],[260.0, 150.0 ],[180.0, 150.0 ],[180.0, 200.0 ]]]]
-    }"#;
-
-    let clippers = r#"[
-        {
-            "type": "MultiPolygon",
-            "coordinates": [
-                [[[190.0, 210.0 ],[240.0, 210.0 ],[240.0, 130.0 ],[190.0, 130.0 ]]],
-                [[[215.0, 160.0 ],[230.0, 190.0 ],[200.0, 190.0 ]]]
-            ]
-        },
-        {
-            "type": "MultiPolygon",
-            "coordinates": [[[[190.0, 210.0 ],[240.0, 210.0 ],[240.0, 130.0 ],[190.0, 130.0 ]]]]
-        }
-    ]"#;
-    let result =
-        leftover_geo_json_areas(subject, clippers).expect("leftover calculated successfully");
-    println!("{}", result);
+#[tokio::main]
+async fn main() {
+    let app = create_router();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+        .await
+        .expect("bind to port 3000 failed");
+    serve(listener, app)
+        .await
+        .expect("failed to serve app on listener");
 }
