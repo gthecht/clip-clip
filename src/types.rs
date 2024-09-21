@@ -1,22 +1,20 @@
-use geo::Geometry;
+use geojson::Geometry;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
-
-use crate::leftover;
 
 #[derive(Debug, Deserialize)]
 pub struct GeoArea {
     #[serde(rename = "_id")]
     id: Option<String>,
-    area: Geometry,
+    pub area: Geometry, // This isn't a geometry but either a polygon or a multi-polygon
 }
 
 #[derive(Debug, Deserialize)]
 pub struct GetCoverBody {
     #[serde(rename = "areaToBeCovered")]
-    subject: GeoArea,
+    pub subject: GeoArea,
     #[serde(rename = "intersectingCandidates")]
-    clippers: Vec<GeoArea>,
+    pub clippers: Vec<GeoArea>,
 }
 
 #[skip_serializing_none]

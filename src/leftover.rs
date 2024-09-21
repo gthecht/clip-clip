@@ -1,7 +1,9 @@
 use eyre::Result;
-use geo::{Geometry, MultiPolygon};
+use geo::{GeodesicArea, Geometry, MultiPolygon};
 use geo_clipper::Clipper;
 use geojson;
+
+use crate::types::{CoverResponse, GeoArea};
 
 /// Given some input subject (either polygon or multipolygon), and a series of other clippers
 /// Return the leftover of the subject after intersecting with all the clippers one after the other
@@ -45,6 +47,31 @@ fn geo_multi_to_geojson_multi(mp: MultiPolygon) -> geojson::Geometry {
         value,
         foreign_members: None,
     }
+}
+
+pub fn get_coverage(subject: GeoArea, clippers: Vec<GeoArea>) -> Result<CoverResponse> {
+    let subject: Geometry = subject
+        .area
+        .try_into()
+        .expect("expected subject to be valid geojson geometry");
+    let clippers: Vec<Geometry> = clippers
+        .iter()
+        .map(|clip| {
+            Geometry::try_from(clip.area.clone())
+                .expect("expected clipper to be valid geojson geometry")
+        })
+        .collect();
+    let leftover: MultiPolygon = calculate_leftover(subject.clone(), clippers)?;
+    let intersection: MultiPolygon = calculate_leftover(
+        subject.clone(),
+        vec![Geometry::MultiPolygon(leftover.clone())],
+    )?;
+    let covered_percentage =
+        100.0 * (intersection.geodesic_area_unsigned() / subject.geodesic_area_unsigned());
+    let leftover: geojson::Geometry = geo_multi_to_geojson_multi(leftover);
+    let intersection: geojson::Geometry = geo_multi_to_geojson_multi(intersection);
+    let response = CoverResponse::new(covered_percentage, Some(leftover), Some(intersection), None);
+    Ok(response)
 }
 
 pub fn leftover_geo_json_areas(subject: &str, clippers: &str) -> Result<String> {
