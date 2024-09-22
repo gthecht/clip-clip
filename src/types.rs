@@ -1,10 +1,11 @@
+use geo::MultiPolygon;
 use geojson::Geometry;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct GeoArea {
-    pub area: Geometry, // This isn't a geometry but either a polygon or a multi-polygon
+    pub area: MultiPolygon, // This isn't a geometry but either a polygon or a multi-polygon
 }
 
 #[derive(Debug, Deserialize)]
