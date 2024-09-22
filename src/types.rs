@@ -2,10 +2,8 @@ use geojson::Geometry;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct GeoArea {
-    #[serde(rename = "_id")]
-    id: Option<String>,
     pub area: Geometry, // This isn't a geometry but either a polygon or a multi-polygon
 }
 
@@ -21,17 +19,31 @@ pub struct GetCoverBody {
 #[derive(Debug, Serialize)]
 pub struct PartialCoverage {
     #[serde(rename = "covered%")]
-    covered_percent: f64,
-    leftover: Option<Geometry>,
+    pub covered_percentage: f64,
+    pub leftover: Option<Geometry>,
     #[serde(rename = "coveredArea")]
-    covered_area: Option<Geometry>,
+    pub covered_area: Option<Geometry>,
+}
+
+impl PartialCoverage {
+    pub fn new(
+        covered_percentage: f64,
+        leftover: Option<Geometry>,
+        covered_area: Option<Geometry>,
+    ) -> Self {
+        PartialCoverage {
+            covered_percentage,
+            leftover,
+            covered_area,
+        }
+    }
 }
 
 #[skip_serializing_none]
 #[derive(Debug, Serialize)]
 pub struct CoverResponse {
     #[serde(rename = "covered%")]
-    covered_percent: f64,
+    covered_percentage: f64,
     leftover: Option<Geometry>,
     #[serde(rename = "coveredArea")]
     covered_area: Option<Geometry>,
@@ -41,13 +53,13 @@ pub struct CoverResponse {
 
 impl CoverResponse {
     pub fn new(
-        covered_percent: f64,
+        covered_percentage: f64,
         leftover: Option<Geometry>,
         covered_area: Option<Geometry>,
         partial_coverages: Option<Vec<PartialCoverage>>,
     ) -> Self {
         CoverResponse {
-            covered_percent,
+            covered_percentage,
             leftover,
             covered_area,
             partial_coverages,
