@@ -14,7 +14,7 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(&host)
         .await
         .expect(&format!("bind to port {} failed", port));
-    println!("app listening on {}", host);
+    tracing::info!("app listening on {}", host);
     serve(listener, app)
         .await
         .expect("failed to serve app on listener");
