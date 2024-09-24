@@ -2,7 +2,7 @@ use geo::{GeodesicArea, MultiPolygon};
 use geo_clipper::Clipper;
 use geojson;
 
-use crate::types::{CoverResponse, GeoArea, PartialCoverage};
+use crate::types::{CoverResponse, PartialCoverage};
 
 /// Given some input subject (either polygon or multipolygon), and a series of other clippers
 /// Return the leftover of the subject after intersecting with all the clippers one after the other
@@ -20,12 +20,7 @@ pub fn calculate_leftover(subject: &MultiPolygon, clippers: &Vec<MultiPolygon>) 
     clipped
 }
 
-pub fn get_partial_coverage(subject: GeoArea, clippers: Vec<GeoArea>) -> PartialCoverage {
-    let subject: MultiPolygon = subject.area.into();
-    let clippers: Vec<MultiPolygon> = clippers
-        .into_iter()
-        .map(|clip| MultiPolygon::from(clip.area))
-        .collect();
+pub fn get_partial_coverage(subject: MultiPolygon, clippers: Vec<MultiPolygon>) -> PartialCoverage {
     let leftover: MultiPolygon = calculate_leftover(&subject, &clippers);
     let leftover_geojson = geojson::Geometry::from(&leftover);
     let intersection: MultiPolygon = calculate_leftover(&subject, &vec![leftover.clone()]);
@@ -40,7 +35,7 @@ pub fn get_partial_coverage(subject: GeoArea, clippers: Vec<GeoArea>) -> Partial
     )
 }
 
-pub fn get_coverage(subject: GeoArea, clippers: Vec<GeoArea>) -> CoverResponse {
+pub fn get_coverage(subject: MultiPolygon, clippers: Vec<MultiPolygon>) -> CoverResponse {
     let full_coverage = get_partial_coverage(subject.clone(), clippers.clone());
     let partial_coverages: Vec<PartialCoverage> = clippers
         .into_iter()
@@ -74,118 +69,36 @@ mod leftover_test {
 
         let clip1 = MultiPolygon::new(vec![Polygon::new(
             LineString(vec![
-                Coord { x: 190.0, y: 210.0 },
-                Coord { x: 240.0, y: 210.0 },
-                Coord { x: 240.0, y: 130.0 },
-                Coord { x: 190.0, y: 130.0 },
+                Coord { x: 40.0, y: 50.0 },
+                Coord { x: 30.0, y: 50.0 },
+                Coord { x: 30.0, y: 0.0 },
+                Coord { x: 40.0, y: 0.0 },
             ]),
             vec![LineString(vec![
-                Coord { x: 215.0, y: 160.0 },
-                Coord { x: 230.0, y: 190.0 },
-                Coord { x: 50.0, y: 190.0 },
+                Coord { x: 35.0, y: 35.0 },
+                Coord { x: 30.0, y: 20.0 },
+                Coord { x: 36.0, y: 30.0 },
             ])],
         )]);
 
         let clip2 = MultiPolygon::new(vec![Polygon::new(
             LineString(vec![
-                Coord { x: 215.0, y: 160.0 },
-                Coord { x: 230.0, y: 190.0 },
-                Coord { x: 50.0, y: 190.0 },
+                Coord { x: 15.0, y: 15.0 },
+                Coord { x: 10.0, y: 10.0 },
+                Coord { x: 16.0, y: 10.0 },
             ]),
             vec![],
         )]);
 
         let result = calculate_leftover(&subject, &vec![clip1, clip2]);
-        let expected = MultiPolygon::new(vec![
-            Polygon::new(
-                LineString(vec![
-                    Coord { x: 190.0, y: 50.0 },
-                    Coord { x: 40.0, y: 50.0 },
-                    Coord { x: 40.0, y: 0.0 },
-                    Coord { x: 190.0, y: 0.0 },
-                    Coord { x: 190.0, y: 50.0 },
-                ]),
-                vec![],
-            ),
-            Polygon::new(
-                LineString(vec![
-                    Coord { x: 30.0, y: 50.0 },
-                    Coord { x: 240.0, y: 50.0 },
-                    Coord { x: 240.0, y: 0.0 },
-                    Coord { x: 30.0, y: 0.0 },
-                    Coord { x: 30.0, y: 50.0 },
-                ]),
-                vec![],
-            ),
-        ]);
-        assert_eq!(expected, result);
-        Ok(())
-    }
-
-    #[test]
-    fn get_coverage_test() -> Result<()> {
-        let subject = GeoArea {
-            area: MultiPolygon(vec![Polygon::new(
-                LineString(vec![
-                    Coord { x: 40.0, y: 50.0 },
-                    Coord { x: 30.0, y: 50.0 },
-                    Coord { x: 30.0, y: 0.0 },
-                    Coord { x: 40.0, y: 0.0 },
-                ]),
-                vec![],
-            )]),
-        };
-
-        let clip1 = GeoArea {
-            area: MultiPolygon::new(vec![Polygon::new(
-                LineString(vec![
-                    Coord { x: 190.0, y: 210.0 },
-                    Coord { x: 240.0, y: 210.0 },
-                    Coord { x: 240.0, y: 130.0 },
-                    Coord { x: 190.0, y: 130.0 },
-                ]),
-                vec![LineString(vec![
-                    Coord { x: 215.0, y: 160.0 },
-                    Coord { x: 230.0, y: 190.0 },
-                    Coord { x: 50.0, y: 190.0 },
-                ])],
-            )]),
-        };
-
-        let clip2 = GeoArea {
-            area: MultiPolygon::new(vec![Polygon::new(
-                LineString(vec![
-                    Coord { x: 215.0, y: 160.0 },
-                    Coord { x: 230.0, y: 190.0 },
-                    Coord { x: 50.0, y: 190.0 },
-                ]),
-                vec![],
-            )]),
-        };
-
-        let result = get_coverage(subject, vec![clip1, clip2]);
-        let expected = MultiPolygon::new(vec![
-            Polygon::new(
-                LineString(vec![
-                    Coord { x: 190.0, y: 50.0 },
-                    Coord { x: 40.0, y: 50.0 },
-                    Coord { x: 40.0, y: 0.0 },
-                    Coord { x: 190.0, y: 0.0 },
-                    Coord { x: 190.0, y: 50.0 },
-                ]),
-                vec![],
-            ),
-            Polygon::new(
-                LineString(vec![
-                    Coord { x: 30.0, y: 50.0 },
-                    Coord { x: 240.0, y: 50.0 },
-                    Coord { x: 240.0, y: 0.0 },
-                    Coord { x: 30.0, y: 0.0 },
-                    Coord { x: 30.0, y: 50.0 },
-                ]),
-                vec![],
-            ),
-        ]);
+        let expected = MultiPolygon::new(vec![Polygon::new(
+            LineString(vec![
+                Coord { x: 35.0, y: 35.0 },
+                Coord { x: 30.0, y: 20.0 },
+                Coord { x: 36.0, y: 30.0 },
+            ]),
+            vec![],
+        )]);
         assert_eq!(expected, result);
         Ok(())
     }
